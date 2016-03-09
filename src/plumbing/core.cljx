@@ -477,7 +477,12 @@
         [bind body] (schema-macros/extract-arrow-schematized-element &env args)]
     (schema/assert-iae (symbol? name) "Name for defnk is not a symbol: %s" name)
     (let [f (fnk-impl/fnk-form &env name bind body &form)]
-      `(def ~(with-meta name (merge (meta name) (assoc-when (or attr-map? {}) :doc docstring?)))
-         ~f))))
+      `(let [f# ~f
+             top-level-keys# (-> f# meta ::fnk-impl/positional-info second
+                                 (->> (mapv (comp symbol name))))]
+         (doto
+             (def ~(with-meta name (merge (meta name) (assoc-when (or attr-map? {}) :doc docstring?)))
+               f#)
+           (alter-meta! update-in [:arglists] #(or % [{:keys top-level-keys#}])))))))
 
 #+clj (set! *warn-on-reflection* false)
